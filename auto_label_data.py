@@ -4,11 +4,20 @@ from typing import List
 import os
 import numpy as np
 import numpy.ma as ma
+from pydantic import BaseModel
+import csv
+import pandas as pd
 
 CAR_COLOR = [142, 0, 0]
 
 
 def non_max_suppression_fast(boxes, overlapThresh):
+    """
+    https://www.pyimagesearch.com/2015/02/16/faster-non-maximum-suppression-python/
+    :param boxes:
+    :param overlapThresh:
+    :return:
+    """
     # if there are no boxes, return an empty list
     if len(boxes) == 0:
         return []
@@ -91,10 +100,33 @@ if __name__ == '__main__':
     rgb_img_paths = find_img_paths(Path("./data/front_rgb"))
     ss_img_paths = find_img_paths(Path("./data/ss"))
     indexes = range(0, len(rgb_img_paths))
-    for i in indexes[100:]:
+
+    fields = ["filename", "width", "height", "class", "xmin", "ymin", "xmax", "ymax"]
+    log = []
+    df = pd.DataFrame(columns=fields)
+    for i in indexes:
         print(f"Frame {i + 1}")
         rgb_img = cv2.imread(rgb_img_paths[i].as_posix())
         ss_img = cv2.imread(ss_img_paths[i].as_posix())
-
         bboxes = find_bbox_coord(ss_img, min_bb_size=100)
+        for box in bboxes:
+            x, y, w, h = box[0], box[1], box[2], box[3]
+            df = df.append(
+                {
+                    "filename": f"frame_{i + 1}",
+                    "width": 800,
+                    "height": 600,
+                    "class": 1,
+                    "xmin": x,
+                    "ymin": y,
+                    "xmax": x + w,
+                    "ymax": y + h
+                },
+                ignore_index=True
+            )
         draw_bbox(rgb_img, bboxes)
+    df.to_csv(Path("output.csv"), index=False)
+
+    # print(len(bboxes))
+    # draw_bbox(rgb_img, bboxes)
+    # print()
